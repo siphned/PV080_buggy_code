@@ -1,5 +1,3 @@
-import sys
-import os
 import yaml
 import flask
 
@@ -76,13 +74,15 @@ def fetch_website(urllib_version, url):
                 content = content.decode("utf-8", errors="replace")
             return content
     except Exception as e:
-        # Return the error message so Flask can show it (keeps behavior testable)
+        # Return the error message so Flask can show it
+        # (keeps behavior testable)
         return f"Request failed: {e}"
 
 
 def load_yaml(filename):
     stream = open(filename)
-    deserialized_data = yaml.load(stream, Loader=yaml.Loader)  # deserializing data
+    # deserializing data
+    deserialized_data = yaml.load(stream, Loader=yaml.Loader)
     return deserialized_data
 
 
@@ -95,13 +95,18 @@ def authenticate(password):
 if __name__ == "__main__":
     print("Vulnerabilities:")
     print(
-        "1. Format string vulnerability: use string={person.__init__.__globals__[CONFIG][API_KEY]}"
+        "1. Format string vulnerability: \
+        use string=\
+        {person.__init__.__globals__[CONFIG][API_KEY]}"
     )
-    print("2. Code injection vulnerability: use string=;print('Own code executed') #")
+    print("2. Code injection vulnerability: \
+        use string=;print('Own code executed') #")
     print(
-        "3. Yaml deserialization vulnerability: see file_solution.yaml for a solution"
+        "3. Yaml deserialization vulnerability: \
+        see file_solution.yaml for a solution"
     )
-    print("4. Use of assert statements vulnerability: run program with -O argument")
+    print("4. Use of assert statements \
+        vulnerability: run program with -O argument")
     choice = input("Select vulnerability: ")
     if choice == "1":
         new_person = Person("Vickie")
