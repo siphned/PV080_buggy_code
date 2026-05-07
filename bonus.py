@@ -53,4 +53,3 @@ for _ in range(100):
         break
 
     print("Profile updated: ", profile)
-
