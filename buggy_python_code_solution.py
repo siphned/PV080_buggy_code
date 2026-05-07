@@ -34,6 +34,26 @@ def fetch_website(urllib_version, url):
     if parsed.scheme not in ("http", "https"):
         return "Invalid URL scheme"
 
+    # Prevent SSRF by disallowing requests to localhost / private / reserved IPs
+    try:
+        import socket
+        import ipaddress
+
+        host = parsed.hostname
+        if not host:
+            return "Invalid host"
+
+        infos = socket.getaddrinfo(host, None)
+        for family, _, _, _, sockaddr in infos:
+            # sockaddr format differs between IPv4 and IPv6
+            ip = sockaddr[0]
+            addr = ipaddress.ip_address(ip)
+            if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_multicast or addr.is_reserved:
+                return "URL resolves to a disallowed/private address"
+    except Exception:
+        # If DNS resolution fails, fail closed
+        return "Host resolution failed"
+
     # Safely import a module that will be referenced as `urllib` below.
     # We prefer urllib3 (has PoolManager); if the user asks for version '2'
     # fall back to stdlib urllib.request and adapt the request logic.

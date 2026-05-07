@@ -26,15 +26,64 @@ def print_nametag(format_string, person):
 
 
 def fetch_website(urllib_version, url):
-    # Import the requested version (2 or 3) of urllib
-    exec(f"import urllib{urllib_version} as urllib", globals())
-    # Fetch and print the requested URL
+    # Validate inputs early
+    if not url:
+        return "No URL provided"
+
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return "Invalid URL scheme"
+
+    # Prevent SSRF by disallowing requests to localhost / private / reserved IPs
+    try:
+        import socket
+        import ipaddress
+
+        host = parsed.hostname
+        if not host:
+            return "Invalid host"
+
+        infos = socket.getaddrinfo(host, None)
+        for family, _, _, _, sockaddr in infos:
+            ip = sockaddr[0]
+            addr = ipaddress.ip_address(ip)
+            if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_multicast or addr.is_reserved:
+                return "URL resolves to a disallowed/private address"
+    except Exception:
+        return "Host resolution failed"
+
+    # Safely import a module called `urllib` (prefer urllib3)
+    urllib = None
+    try:
+        if urllib_version == "3" or urllib_version is None:
+            import urllib3 as urllib
+        elif urllib_version == "2":
+            import urllib.request as urllib
+        else:
+            urllib = __import__(f"urllib{urllib_version}")
+    except Exception:
+        try:
+            import urllib3 as urllib
+        except Exception:
+            import urllib.request as urllib
 
     try:
-        http = urllib.PoolManager()
-        r = http.request("GET", url)
-    except:
-        print("Exception")
+        if hasattr(urllib, "PoolManager"):
+            http = urllib.PoolManager()
+            r = http.request("GET", url, timeout=5.0)
+            body = getattr(r, "data", None)
+            if isinstance(body, (bytes, bytearray)):
+                body = body.decode("utf-8", errors="replace")
+            return body if body is not None else ""
+        else:
+            resp = urllib.urlopen(url, timeout=5)
+            content = resp.read()
+            if isinstance(content, (bytes, bytearray)):
+                content = content.decode("utf-8", errors="replace")
+            return content
+    except Exception as e:
+        return f"Request failed: {e}"
 
 
 def load_yaml(filename):
