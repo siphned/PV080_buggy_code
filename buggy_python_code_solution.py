@@ -1,4 +1,4 @@
-import sys 
+import sys
 import os
 import yaml
 import flask
@@ -12,8 +12,10 @@ def index():
     url = flask.request.args.get("url")
     return fetch_website(version, url)
 
-        
+
 CONFIG = {"API_KEY": "771df488714111d39138eb60df756e6b"}
+
+
 class Person(object):
     def __init__(self, name):
         self.name = name
@@ -29,6 +31,7 @@ def fetch_website(urllib_version, url):
         return "No URL provided"
 
     from urllib.parse import urlparse
+
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         return "Invalid URL scheme"
@@ -38,9 +41,9 @@ def fetch_website(urllib_version, url):
     # fall back to stdlib urllib.request and adapt the request logic.
     urllib = None
     try:
-        if urllib_version == '3' or urllib_version is None:
+        if urllib_version == "3" or urllib_version is None:
             import urllib3 as urllib
-        elif urllib_version == '2':
+        elif urllib_version == "2":
             # Python3 doesn't have urllib2; use urllib.request instead
             import urllib.request as urllib
         else:
@@ -57,20 +60,20 @@ def fetch_website(urllib_version, url):
     # Perform the GET request using whichever `urllib` we have.
     try:
         # urllib3 path (has PoolManager)
-        if hasattr(urllib, 'PoolManager'):
+        if hasattr(urllib, "PoolManager"):
             http = urllib.PoolManager()
-            r = http.request('GET', url, timeout=5.0)
+            r = http.request("GET", url, timeout=5.0)
             # urllib3 response exposes .data and .status
-            body = getattr(r, 'data', None)
+            body = getattr(r, "data", None)
             if isinstance(body, (bytes, bytearray)):
-                body = body.decode('utf-8', errors='replace')
-            return body if body is not None else ''
+                body = body.decode("utf-8", errors="replace")
+            return body if body is not None else ""
         else:
             # stdlib urllib.request path
             resp = urllib.urlopen(url, timeout=5)
             content = resp.read()
             if isinstance(content, (bytes, bytearray)):
-                content = content.decode('utf-8', errors='replace')
+                content = content.decode("utf-8", errors="replace")
             return content
     except Exception as e:
         # Return the error message so Flask can show it (keeps behavior testable)
@@ -79,23 +82,29 @@ def fetch_website(urllib_version, url):
 
 def load_yaml(filename):
     stream = open(filename)
-    deserialized_data = yaml.load(stream, Loader=yaml.Loader) #deserializing data
+    deserialized_data = yaml.load(stream, Loader=yaml.Loader)  # deserializing data
     return deserialized_data
-    
+
+
 def authenticate(password):
     # Assert that the password is correct
     assert password == "Iloveyou", "Invalid password!"
     print("Successfully authenticated!")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     print("Vulnerabilities:")
-    print("1. Format string vulnerability: use string={person.__init__.__globals__[CONFIG][API_KEY]}")
+    print(
+        "1. Format string vulnerability: use string={person.__init__.__globals__[CONFIG][API_KEY]}"
+    )
     print("2. Code injection vulnerability: use string=;print('Own code executed') #")
-    print("3. Yaml deserialization vulnerability: see file_solution.yaml for a solution")
+    print(
+        "3. Yaml deserialization vulnerability: see file_solution.yaml for a solution"
+    )
     print("4. Use of assert statements vulnerability: run program with -O argument")
-    choice  = input("Select vulnerability: ")
-    if choice == "1": 
-        new_person = Person("Vickie")  
+    choice = input("Select vulnerability: ")
+    if choice == "1":
+        new_person = Person("Vickie")
         print_nametag(input("Please format your nametag: "), new_person)
     elif choice == "2":
         urlib_version = input("Choose version of urllib: ")
@@ -106,4 +115,3 @@ if __name__ == '__main__':
     elif choice == "4":
         password = input("Enter master password: ")
         authenticate(password)
-
