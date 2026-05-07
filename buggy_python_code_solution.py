@@ -24,15 +24,57 @@ def print_nametag(format_string, person):
 
 
 def fetch_website(urllib_version, url):
-    # Import the requested version (2 or 3) of urllib
-    exec(f"import urllib{urllib_version} as urllib", globals())
-    # Fetch and print the requested URL
- 
-    try: 
-        http = urllib.PoolManager()
-        r = http.request('GET', url)
-    except:
-        print('Exception')
+    # Validate inputs early
+    if not url:
+        return "No URL provided"
+
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return "Invalid URL scheme"
+
+    # Safely import a module that will be referenced as `urllib` below.
+    # We prefer urllib3 (has PoolManager); if the user asks for version '2'
+    # fall back to stdlib urllib.request and adapt the request logic.
+    urllib = None
+    try:
+        if urllib_version == '3' or urllib_version is None:
+            import urllib3 as urllib
+        elif urllib_version == '2':
+            # Python3 doesn't have urllib2; use urllib.request instead
+            import urllib.request as urllib
+        else:
+            # Try importing a named module like urllib3 if they passed '3'
+            name = f"urllib{urllib_version}"
+            urllib = __import__(name)
+    except Exception:
+        # Best-effort fallback: try urllib3, then stdlib urllib.request
+        try:
+            import urllib3 as urllib
+        except Exception:
+            import urllib.request as urllib
+
+    # Perform the GET request using whichever `urllib` we have.
+    try:
+        # urllib3 path (has PoolManager)
+        if hasattr(urllib, 'PoolManager'):
+            http = urllib.PoolManager()
+            r = http.request('GET', url, timeout=5.0)
+            # urllib3 response exposes .data and .status
+            body = getattr(r, 'data', None)
+            if isinstance(body, (bytes, bytearray)):
+                body = body.decode('utf-8', errors='replace')
+            return body if body is not None else ''
+        else:
+            # stdlib urllib.request path
+            resp = urllib.urlopen(url, timeout=5)
+            content = resp.read()
+            if isinstance(content, (bytes, bytearray)):
+                content = content.decode('utf-8', errors='replace')
+            return content
+    except Exception as e:
+        # Return the error message so Flask can show it (keeps behavior testable)
+        return f"Request failed: {e}"
 
 
 def load_yaml(filename):
